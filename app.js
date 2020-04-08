@@ -11,6 +11,8 @@ const cartContent = document.querySelector(".cart-content");
 const productsDOM = document.querySelector(".products-center");
 // cart
 let cart = [];
+// buttons
+let buttonsDOM = []
 
 // getting the products
 class Products {
@@ -55,11 +57,81 @@ class UI {
       productsDOM.innerHTML = results;
     })
   }
+  getBagButtons() {
+    const buttons = [...document.querySelectorAll('.bag-btn')];
+    buttonsDOM = buttons;
+    buttons.forEach(button => {
+      let id = button.dataset.id;
+      let inCart = cart.find(item => item.id === id);
+      if (inCart) {
+        button.innerText = 'In Cart';
+        button.disabled = true;
+      }
+      else {
+        button.addEventListener('click', e => {
+          e.target.innerText = 'In Cart';
+          e.target.disabled = true;
+          // get product from products
+          let cartItem = {...Storage.getProduct(id), amount: 1};
+          // add product to the cart
+          cart = [...cart, cartItem];
+          // save cart in local storage
+          Storage.saveCart(cart)
+          // set cart values
+          this.setCartValues(cart);
+          // display cart item
+          this.addCartItem(cartItem);
+          // show the cart
+          this.showCart(cart);
+        })
+      }
+    })
+  }
+  setCartValues(cart) {
+    let tempTotal = 0;
+    let itemsTotal = 0;
+    cart.map(item => {
+      tempTotal += item.price * item.amount;
+      itemsTotal += item.amount;
+    })
+    cartTotal.innerText = parseFloat(tempTotal.toFixed(2));
+    cartItems.innerText = itemsTotal;
+  }
+  addCartItem(item) {
+    const div = document.createElement('div');
+    div.classList.add('cart-item');
+    div.innerHTML = `
+      <img src="${item.image}" alt="product" />
+      <div>
+        <h4>${item.title}</h4>
+        <h5>$${item.price}</h5>
+        <span class="remove-item" data-id="${item.id}">remove</span>
+      </div>
+      <div>
+        <i class = "fas fa-chevron-up"
+        data-id ="${item.id}"></i>
+        <p class="item-amount">${item.amount}</p>
+        <i class="fas fa-chevron-down"
+        data-id="${item.id}"></i>
+      </div>`;
+    cartContent.appendChild(div);
+  }
+  showCart() {
+    cartOverlay.classList.add('transparentBcg');
+    cartDOM.classList.add('showCart');
+  }
 }
 //local storage
 class Storage {
   static saveProducts(products) {
     localStorage.setItem('products', JSON.stringify(products));
+  }
+  static getProduct(id) {
+    let products = JSON.parse(localStorage.getItem('products'));
+    return products.find(product=> product.id === id);
+  }
+  static saveCart(cart) {
+    localStorage.setItem('cart', JSON.stringify(cart));
   }
 }
 
@@ -71,5 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
   products.getProducts().then(products => {
     ui.displayProducts(products),
     Storage.saveProducts(products);
+  }).then(() => {
+    ui.getBagButtons();
   });
 });
